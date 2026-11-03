@@ -11,6 +11,8 @@ members = [
     "crates/horizon-client-lib",
     "crates/horizon-client-core",
     "crates/horizon-client-input",
+    # Xbox (UWP) platform layer; empty on every other target.
+    "crates/horizon-platform-uwp",
     "crates/horizon-client-render",
     "crates/horizon-cosmetics",
     "crates/horizon-command",

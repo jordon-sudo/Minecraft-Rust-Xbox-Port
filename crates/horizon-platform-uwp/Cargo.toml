@@ -1,0 +1,34 @@
+[package]
+name = "horizon-platform-uwp"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version = "1.90"
+description = "The Xbox (UWP) platform layer: CoreApplication, CoreWindow, app lifecycle and sandboxed paths"
+
+# Everything here is Xbox-only. On every other target the crate builds to an
+# empty library, so desktop builds are unchanged and the workspace still
+# checks on Linux and macOS.
+[target.'cfg(target_vendor = "uwp")'.dependencies]
+log = "0.4"
+raw-window-handle = "0.6"
+windows = { version = "0.62.2", features = [
+    "ApplicationModel",
+    "ApplicationModel_Activation",
+    "ApplicationModel_Core",
+    "Foundation",
+    "Foundation_Collections",
+    "Graphics_Display",
+    "Storage",
+    "Storage_Search",
+    "System",
+    "Win32_Foundation",
+    "UI_Core",
+    "UI_Input",
+    "UI_Popups",
+    "UI_ViewManagement",
+] }
+windows-core = "0.62.2"
+
+[lints]
+workspace = true

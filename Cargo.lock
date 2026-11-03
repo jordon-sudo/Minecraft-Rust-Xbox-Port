@@ -1643,6 +1643,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "horizon-platform-uwp"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "raw-window-handle",
+ "windows 0.62.2",
+ "windows-core 0.62.2",
+]
+
+[[package]]
 name = "horizon-port-pack"
 version = "0.1.0"
 dependencies = [
