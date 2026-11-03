@@ -17,12 +17,14 @@
 
 #![cfg(target_vendor = "uwp")]
 
+mod audio;
 mod events;
 mod lifecycle;
 mod paths;
 mod view;
 mod window;
 
+pub use audio::{AudioOutput, Fill};
 pub use events::{Event, Key, MouseButton};
 pub use lifecycle::{Lifecycle, SuspendGuard};
 pub use paths::{Paths, local_folder};
