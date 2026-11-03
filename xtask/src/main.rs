@@ -10,6 +10,11 @@
 //! (`cargo build --release -p horizon-client --no-default-features`, without sound or controllers)
 //! as horizon-engine, with horizon-prepare and horizon-server from beside it and the same sources.
 //!
+//! `package-xbox BINARY OUTDIR [PUBLISHER]`: the layout of a UWP package for Xbox Developer
+//! Mode, ready for `makeappx pack` (DEPLOY_XBOX.md). PUBLISHER overrides the manifest's
+//! Publisher, which must match the signing certificate's subject. It holds none of Minecraft's
+//! files: prepared resources are copied to the console's LocalState folder separately.
+//!
 //! `tokens`: writes `crates/horizon-theme/tokens.css`, the design tokens of `crates/horizon-theme` as CSS
 //! custom properties (a horizon-theme test fails when the file is out of date).
 //!
@@ -23,7 +28,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, ExitCode};
 
-const USAGE: &str = "usage: cargo run -p xtask -- package BINARY OUTDIR | package-server ENGINE OUTDIR | tokens | icons";
+const USAGE: &str = "usage: cargo run -p xtask -- package BINARY OUTDIR | package-server ENGINE OUTDIR | package-xbox BINARY OUTDIR [PUBLISHER] | tokens | icons";
 
 /// What the release folder takes from the repository at HEAD, as `git archive` writes it.
 const ARCHIVED: [&str; 5] = [
@@ -49,6 +54,12 @@ fn main() -> ExitCode {
         [task, binary, out] if task == "package" => package(Path::new(binary), Path::new(out)),
         [task, engine, out] if task == "package-server" => {
             package_server(Path::new(engine), Path::new(out))
+        }
+        [task, binary, out] if task == "package-xbox" => {
+            package_xbox(Path::new(binary), Path::new(out), None)
+        }
+        [task, binary, out, publisher] if task == "package-xbox" => {
+            package_xbox(Path::new(binary), Path::new(out), Some(publisher))
         }
         [task] if task == "mod-api" => mod_api::run(),
         [task] if task == "tokens" => tokens(),
@@ -524,4 +535,78 @@ mod tests {
         tar.extend([0; 1024]);
         assert!(extract(&tar, out).unwrap_err().contains("unsupported"));
     }
+}
+
+/// `package-xbox BINARY OUTDIR`: the layout of a UWP package for Xbox
+/// Developer Mode, ready for `makeappx pack`.
+///
+/// Horizon cross-compiles to `x86_64-uwp-windows-msvc`, which is a tier 3
+/// target: the binary is built on Windows with a nightly toolchain and
+/// `-Z build-std`, then handed to this task. Packing and signing need the
+/// Windows SDK (`makeappx.exe`, `signtool.exe`), so this task stops at the
+/// layout and prints the two commands to run; DEPLOY_XBOX.md has the rest.
+///
+/// The package holds the game binary, the manifest and the icons, and
+/// nothing else. Prepared resources are copied to the console separately,
+/// into the app's LocalState folder: they are Mojang's files and never go
+/// into a package Horizon distributes.
+fn package_xbox(binary: &Path, out: &Path, identity: Option<&str>) -> Result<(), String> {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let source = repo.join("packaging/xbox");
+
+    if !binary.is_file() {
+        return Err(format!(
+            "{}: not found. Build it on Windows first:\n  \
+             cargo +nightly build --release -Z build-std=std,panic_abort \\\n    \
+             --target x86_64-uwp-windows-msvc -p horizon-client",
+            binary.display()
+        ));
+    }
+
+    match fs::remove_dir_all(out) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            return Err(format!("{}: {e}", out.display()));
+        }
+        _ => {}
+    }
+    let assets = out.join("assets");
+    fs::create_dir_all(&assets).map_err(|e| format!("{}: {e}", assets.display()))?;
+
+    // The executable name is fixed by the manifest's Executable attribute.
+    let exe = out.join("horizon-client.exe");
+    fs::copy(binary, &exe).map_err(|e| format!("{}: {e}", exe.display()))?;
+
+    for entry in fs::read_dir(source.join("assets"))
+        .map_err(|e| format!("{}/assets: {e}", source.display()))?
+    {
+        let entry = entry.map_err(|e| format!("{}/assets: {e}", source.display()))?;
+        let to = assets.join(entry.file_name());
+        fs::copy(entry.path(), &to).map_err(|e| format!("{}: {e}", to.display()))?;
+    }
+
+    // Identity/Publisher must match the signing certificate's subject, or
+    // deployment fails with a certificate mismatch, so they are rewritten
+    // here rather than kept in sync by hand.
+    let manifest_path = source.join("Package.appxmanifest");
+    let mut manifest = fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("{}: {e}", manifest_path.display()))?;
+    if let Some(publisher) = identity {
+        let old = "Publisher=\"CN=Horizon Developer\"";
+        if !manifest.contains(old) {
+            return Err(format!("{}: no {old} to replace", manifest_path.display()));
+        }
+        manifest = manifest.replace(old, &format!("Publisher=\"{publisher}\""));
+    }
+    let to = out.join("AppxManifest.xml");
+    fs::write(&to, manifest).map_err(|e| format!("{}: {e}", to.display()))?;
+
+    println!("wrote {}", out.display());
+    println!();
+    println!("Pack and sign it on Windows, with the Windows SDK on PATH:");
+    println!("  makeappx pack /d \"{}\" /p Horizon.msix", out.display());
+    println!("  signtool sign /fd SHA256 /a /f test.pfx /p <password> Horizon.msix");
+    println!();
+    println!("Then install it from Xbox Device Portal and set the app type to");
+    println!("Game, so it gets the game memory budget (DEPLOY_XBOX.md).");
+    Ok(())
 }

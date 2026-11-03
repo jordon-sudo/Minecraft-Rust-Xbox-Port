@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Horizon as a sideloadable UWP app for Xbox Developer Mode.
+
+  This package carries the game binary only. It never carries Mojang's files:
+  prepared resources are copied into the app's LocalState folder with Device
+  Portal, as DEPLOY_XBOX.md describes.
+
+  Publisher must match the certificate the package is signed with, or
+  deployment fails with a certificate mismatch. The xtask "package-xbox"
+  command rewrites both from its arguments, so pass those rather than
+  editing this file.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="dev.horizonlab.Horizon"
+    Publisher="CN=Horizon Developer"
+    Version="0.1.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Horizon</DisplayName>
+    <PublisherDisplayName>Horizon</PublisherDisplayName>
+    <Logo>assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!--
+      Xbox requires at least 10.0.14393.0. 10.0.17763.0 is the floor for the
+      Direct3D 12 feature set the renderer expects on console.
+    -->
+    <TargetDeviceFamily Name="Windows.Xbox" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <!--
+      A native app must give both Executable and EntryPoint. Horizon registers
+      no activatable WinRT class: the system starts the executable and main()
+      hands control to CoreApplication::Run. If activation ever fails with
+      "class not registered", this EntryPoint string is the field to change.
+    -->
+    <Application Id="App" Executable="horizon-client.exe" EntryPoint="horizon.App">
+      <uap:VisualElements
+        DisplayName="Horizon"
+        Description="Minecraft: Java Edition 26.3, rewritten in Rust"
+        BackgroundColor="#1A1A1E"
+        Square150x150Logo="assets\Square150x150Logo.png"
+        Square44x44Logo="assets\Square44x44Logo.png">
+        <uap:DefaultTile
+          Wide310x150Logo="assets\Wide310x150Logo.png"
+          Square71x71Logo="assets\Square71x71Logo.png"
+          Square310x310Logo="assets\Square310x310Logo.png" />
+        <uap:SplashScreen Image="assets\SplashScreen.png" BackgroundColor="#1A1A1E" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Joining servers and the Microsoft account device-code flow. -->
+    <Capability Name="internetClient" />
+    <!-- Hosting: opening a world to the network, and the relay. -->
+    <Capability Name="internetClientServer" />
+    <!-- LAN discovery and joining a server on the same network. -->
+    <Capability Name="privateNetworkClientServer" />
+  </Capabilities>
+</Package>
