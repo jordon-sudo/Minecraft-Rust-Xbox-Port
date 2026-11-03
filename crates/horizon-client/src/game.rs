@@ -605,11 +605,7 @@ impl Options {
             .ok_or("missing executable directory")?
             .join("resources");
         let mut o = Self {
-            resources: if sibling.join("horizon-resources.json").exists() {
-                sibling
-            } else {
-                std::path::Path::new(".local/horizon-client").join(horizon_core::VANILLA_VERSION)
-            },
+            resources: default_resources(sibling),
             distance: 12,
             distance_override: None,
             seed: 0,
@@ -21251,11 +21247,45 @@ impl ApplicationHandler for App {
 /// Every launch reads the prepared game files (`horizon-prepare`'s output, whose
 /// manifest is `horizon-resources.json`): without them, say where they were
 /// looked for and how to get them, before a window or a loader starts.
+/// Where the prepared resources are, unless `--resources` says otherwise:
+/// the `resources` folder beside the executable, else the developer's
+/// `.local/horizon-client/<version>`.
+///
+/// On Xbox neither exists: the package install folder is read-only and the
+/// working directory is inside it, so the resources live in the one place
+/// the app may write and the player may reach from Device Portal
+/// (docs/xbox-resources.md).
+fn default_resources(sibling: std::path::PathBuf) -> std::path::PathBuf {
+    #[cfg(target_vendor = "uwp")]
+    if let Some(local) = horizon_platform_uwp::local_folder() {
+        return local.join("resources");
+    }
+    if sibling.join("horizon-resources.json").exists() {
+        sibling
+    } else {
+        std::path::Path::new(".local/horizon-client").join(horizon_core::VANILLA_VERSION)
+    }
+}
+
 fn missing_resources(root: &std::path::Path) -> Option<String> {
     if root.join("horizon-resources.json").is_file() {
         return None;
     }
     let shown = std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf());
+    // There is no launcher on a console, and no way to prepare the files
+    // there: the player prepares them on a PC and copies them across.
+    #[cfg(target_vendor = "uwp")]
+    return Some(format!(
+        "Horizon's prepared game files are missing: no horizon-resources.json in {}\n\
+         On your PC, with your own copy of Minecraft: Java Edition, run\n\
+         cargo run --release -p horizon-prepare -- --prepare --server-jar <server.jar>\n\
+         then copy .local/horizon-client/{} into this app's LocalState\\resources \
+         folder with Xbox Device Portal, or run tools/xbox_push_resources.py. \
+         See docs/xbox-resources.md.",
+        shown.display(),
+        horizon_core::VANILLA_VERSION
+    ));
+    #[cfg(not(target_vendor = "uwp"))]
     Some(format!(
         "Horizon's prepared game files are missing: no horizon-resources.json in {}\n\
          Horizon is started from its launcher: download it at {} (Download). It needs your \

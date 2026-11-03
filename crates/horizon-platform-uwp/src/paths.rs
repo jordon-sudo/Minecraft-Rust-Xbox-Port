@@ -64,3 +64,14 @@ impl Paths {
         Ok(())
     }
 }
+
+/// The app's `LocalState` folder, or `None` if WinRT will not say.
+///
+/// A convenience for callers that only need the root and do not want to
+/// build a whole [`Paths`], such as the data-folder lookup the logger and
+/// the save code share.
+pub fn local_folder() -> Option<PathBuf> {
+    let data = ApplicationData::Current().ok()?;
+    let path = data.LocalFolder().ok()?.Path().ok()?;
+    Some(PathBuf::from(path.to_string()))
+}

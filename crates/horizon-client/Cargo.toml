@@ -102,6 +102,10 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 # DirectX 12 driver (`graphicsApi`, graphics.rs).
 wgpu = { version = "30.0.1", default-features = false, features = ["gles"] }
 
+# Xbox: LocalState, where the sandboxed app keeps its files.
+[target.'cfg(target_vendor = "uwp")'.dependencies]
+horizon-platform-uwp = { path = "../horizon-platform-uwp" }
+
 [target.'cfg(windows)'.build-dependencies]
 # The icon resource in the .exe (build.rs).
 winresource = "0.1"

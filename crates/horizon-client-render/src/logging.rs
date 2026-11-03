@@ -29,6 +29,14 @@ const FLOOD_WINDOW: Duration = Duration::from_secs(60);
 
 /// The platform data folder (what the `dirs` crate's data_dir gives).
 pub fn data_dir() -> PathBuf {
+    // On Xbox the process is sandboxed: APPDATA means nothing and the only
+    // writable storage is what ApplicationData hands out, so the whole game
+    // folder lives under LocalState. Everything below this point then works
+    // unchanged against ordinary paths.
+    #[cfg(target_vendor = "uwp")]
+    if let Some(local) = horizon_platform_uwp::local_folder() {
+        return local;
+    }
     let env = |k: &str| {
         std::env::var_os(k)
             .filter(|v| !v.is_empty())

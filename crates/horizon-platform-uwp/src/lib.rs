@@ -25,6 +25,6 @@ mod window;
 
 pub use events::{Event, Key, MouseButton};
 pub use lifecycle::{Lifecycle, SuspendGuard};
-pub use paths::Paths;
+pub use paths::{Paths, local_folder};
 pub use view::{App, run};
 pub use window::Window;
