@@ -95,6 +95,23 @@ impl Window {
         let height = ((f64::from(bounds.Height) * scale).round() as u32).max(1);
         (width, height)
     }
+
+    /// The CoreWindow as a raw handle, for wgpu's unsafe surface target.
+    ///
+    /// wgpu's safe `create_surface` wants a target that is `Send + Sync`; a
+    /// CoreWindow is apartment-bound and deliberately neither, so callers go
+    /// through `create_surface_unsafe` with these two. The surface must not
+    /// outlive this `Window`.
+    pub fn raw_window_handle(&self) -> Result<RawWindowHandle, HandleError> {
+        let ptr = NonNull::new(self.core_window.as_raw()).ok_or(HandleError::Unavailable)?;
+        Ok(RawWindowHandle::WinRt(WinRtWindowHandle::new(ptr)))
+    }
+
+    /// The display handle that goes with it. wgpu's DX12 backend asserts this
+    /// is the Windows one.
+    pub fn raw_display_handle(&self) -> RawDisplayHandle {
+        RawDisplayHandle::Windows(WindowsDisplayHandle::new())
+    }
 }
 
 impl HasWindowHandle for Window {

@@ -13,6 +13,8 @@ members = [
     "crates/horizon-client-input",
     # Xbox (UWP) platform layer; empty on every other target.
     "crates/horizon-platform-uwp",
+    # Xbox smoke test; a stub on every other target.
+    "crates/horizon-xbox-smoke",
     "crates/horizon-client-render",
     "crates/horizon-cosmetics",
     "crates/horizon-command",
