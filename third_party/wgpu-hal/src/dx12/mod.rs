@@ -630,6 +630,11 @@ enum SurfaceTarget {
     /// Borrowed, lifetime externally managed
     SurfaceHandle(Foundation::HANDLE),
     SwapChainPanel(types::ISwapChainPanelNative),
+    /// A WinRT `CoreWindow`, the only top-level window a UWP process has
+    /// (Xbox Dev Mode). Held as `IUnknown` because that is what
+    /// `IDXGIFactory2::CreateSwapChainForCoreWindow` takes.
+    #[cfg(target_vendor = "uwp")]
+    CoreWindow(windows::core::IUnknown),
 }
 
 pub struct Surface {
@@ -1578,6 +1583,18 @@ impl crate::Surface for Surface {
                                 )
                         }
                     }
+                    #[cfg(target_vendor = "uwp")]
+                    SurfaceTarget::CoreWindow(ref core_window) => {
+                        profiling::scope!("IDXGIFactory2::CreateSwapChainForCoreWindow");
+                        unsafe {
+                            self.factory.CreateSwapChainForCoreWindow(
+                                &device.present_queue,
+                                core_window,
+                                &desc,
+                                None,
+                            )
+                        }
+                    }
                     SurfaceTarget::WndHandle(hwnd) => {
                         profiling::scope!("IDXGIFactory2::CreateSwapChainForHwnd");
                         unsafe {
@@ -1598,6 +1615,8 @@ impl crate::Surface for Surface {
                 })?;
 
                 match &self.target {
+                    #[cfg(target_vendor = "uwp")]
+                    SurfaceTarget::CoreWindow(_) => {}
                     SurfaceTarget::WndHandle(_) | SurfaceTarget::SurfaceHandle(_) => {}
                     SurfaceTarget::VisualFromWndHandle {
                         handle,
@@ -1680,6 +1699,10 @@ impl crate::Surface for Surface {
                 }
                 .into_device_result("MakeWindowAssociation")?;
             }
+            // `MakeWindowAssociation` takes an HWND, and there is no Alt+Enter
+            // to intercept on a console anyway.
+            #[cfg(target_vendor = "uwp")]
+            SurfaceTarget::CoreWindow(_) => {}
             SurfaceTarget::Visual(_)
             | SurfaceTarget::VisualFromWndHandle { .. }
             | SurfaceTarget::SurfaceHandle(_)

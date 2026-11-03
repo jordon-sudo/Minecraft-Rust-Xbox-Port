@@ -1,5 +1,9 @@
 /.local/
 /target/
+# The vendored crates in third_party/ are their own packages (excluded from
+# the workspace), so building one standalone makes a target/ beside it.
+third_party/*/target/
+third_party/*/Cargo.lock
 **/__pycache__/
 *.py[cod]
 /.venv/

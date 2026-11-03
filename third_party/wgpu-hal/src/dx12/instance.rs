@@ -2,6 +2,10 @@ use alloc::{string::String, sync::Arc, vec::Vec};
 
 use parking_lot::RwLock;
 use windows::Win32::{Foundation, Graphics::Dxgi};
+// `Interface::from_raw_borrowed`, to borrow the CoreWindow pointer
+// raw-window-handle gives us without taking ownership of it.
+#[cfg(target_vendor = "uwp")]
+use windows::core::Interface as _;
 
 use super::SurfaceTarget;
 use crate::{
@@ -155,6 +159,34 @@ impl crate::Instance for super::Instance {
                     swap_chain: RwLock::new(None),
                     options: self.options.clone(),
                     hdr_source: Some(auxil::dxgi::hdr::DxgiHdrSource::new(handle)),
+                })
+            }
+            // A UWP process (Xbox Dev Mode) has no HWND: its only top-level
+            // window is a WinRT `CoreWindow`, which DXGI takes through
+            // `CreateSwapChainForCoreWindow`. `raw-window-handle` hands it to
+            // us as a bare pointer, so we borrow it as an `IUnknown` without
+            // taking ownership: the caller keeps the `CoreWindow` alive, as
+            // the other borrowed targets here do.
+            #[cfg(target_vendor = "uwp")]
+            raw_window_handle::RawWindowHandle::WinRt(handle) => {
+                let core_window = unsafe {
+                    windows::core::IUnknown::from_raw_borrowed(&(handle.core_window.as_ptr() as *mut _))
+                }
+                .ok_or_else(|| {
+                    crate::InstanceError::new(String::from("WinRT CoreWindow handle was null"))
+                })?
+                .clone();
+
+                Ok(super::Surface {
+                    factory: self.factory.clone(),
+                    factory_media: self.factory_media.clone(),
+                    target: SurfaceTarget::CoreWindow(core_window),
+                    supports_allow_tearing: self.supports_allow_tearing,
+                    swap_chain: RwLock::new(None),
+                    options: self.options.clone(),
+                    // `DxgiHdrSource` is built from an HWND, which a
+                    // CoreWindow has not.
+                    hdr_source: None,
                 })
             }
             _ => Err(crate::InstanceError::new(format!(

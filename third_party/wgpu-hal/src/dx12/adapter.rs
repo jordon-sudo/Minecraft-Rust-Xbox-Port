@@ -1307,6 +1307,10 @@ impl crate::Adapter for super::Adapter {
                         None
                     }
                 }
+                // No HWND to measure: the configured size wins, which is the
+                // size the CoreWindow event loop reports.
+                #[cfg(target_vendor = "uwp")]
+                SurfaceTarget::CoreWindow(_) => None,
                 SurfaceTarget::Visual(_)
                 | SurfaceTarget::SurfaceHandle(_)
                 | SurfaceTarget::SwapChainPanel(_) => None,
@@ -1363,6 +1367,9 @@ impl crate::Adapter for super::Adapter {
             present_modes,
             composite_alpha_modes: match surface.target {
                 SurfaceTarget::WndHandle(_) => vec![wgt::CompositeAlphaMode::Opaque],
+                // A CoreWindow swapchain is not composed: opaque only.
+                #[cfg(target_vendor = "uwp")]
+                SurfaceTarget::CoreWindow(_) => vec![wgt::CompositeAlphaMode::Opaque],
                 SurfaceTarget::Visual(_)
                 | SurfaceTarget::VisualFromWndHandle { .. }
                 | SurfaceTarget::SurfaceHandle(_)
