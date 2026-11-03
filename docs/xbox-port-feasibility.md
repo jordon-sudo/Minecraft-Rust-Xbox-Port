@@ -1,8 +1,26 @@
 # Phase 0 — Feasibility report: Horizon on Xbox Dev Mode (UWP)
 
-Status: **investigation only, no port code written.** Awaiting approval before Phase 1.
-
 Baseline: horizon-rust/horizon @ `c332740d319c86c1fc85dbd047e90d4982447eb3`, imported unmodified.
+
+> **This was the Phase 0 report; work has since started.** The findings below
+> still stand, but three of the blockers have been dealt with. Current state:
+
+| Blocker from this report | Now |
+|---|---|
+| wgpu-hal DX12 takes only `RawWindowHandle::Win32` | **Fixed.** `SurfaceTarget::CoreWindow` goes through `CreateSwapChainForCoreWindow`. Compiles for the UWP target. |
+| winit cannot open a window in a UWP process | **Replaced** by `horizon-platform-uwp` (CoreApplication, CoreWindow, events, suspend/resume, paths). Compiles. **Not yet wired into the client.** |
+| cpal cannot reach the default device | **Replaced** by `horizon_platform_uwp::AudioOutput`, via `ActivateAudioInterfaceAsync`. Compiles. **Not yet wired into `audio.rs`.** |
+| gilrs on UWP: unverified | **Verified.** `gilrs 0.11.2` compiles clean for `x86_64-uwp-windows-msvc`, on its Windows.Gaming.Input backend. |
+| `ring`, `libmimalloc-sys` on UWP | **Still unverified.** Their build scripts need an MSVC C compiler, which this Linux host has not. Must be checked on Windows. |
+
+**The game does not run on Xbox yet.** The platform layer exists and compiles,
+but `game.rs` still starts winit's event loop, so nothing calls it. That
+wiring is the next step, and it needs a Windows machine: `horizon-client`
+cannot be compiled for the UWP target on Linux at all, so none of it could be
+verified here.
+
+Nothing in this port has ever been packed, signed, installed or run on a
+console.
 
 ---
 

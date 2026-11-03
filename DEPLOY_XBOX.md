@@ -128,9 +128,9 @@ Read this before assuming a failure is your setup.
 |---|---|
 | DX12 surface from CoreWindow | Implemented in `third_party/wgpu-hal`, compiles, **never run on hardware** |
 | CoreWindow event loop, suspend/resume, paths | Implemented in `horizon-platform-uwp`, compiles, **not yet wired into the client** |
-| Audio | **Broken.** `cpal`'s WASAPI backend uses `CoCreateInstance(MMDeviceEnumerator)`, which UWP forbids. Needs a UWP backend. |
+| Audio | A UWP backend exists (`horizon_platform_uwp::AudioOutput`, via `ActivateAudioInterfaceAsync`) and compiles. `audio.rs` still builds its stream with cpal, so **sound will not work until that is switched over**. |
 | Clipboard (`arboard`), `open`, narrator | Win32-only; compile, will fail at runtime. To be disabled on Xbox. |
-| Controller input | `gilrs` already defaults to a Windows.Gaming.Input backend, so this should mostly work once wired up. |
+| Controller input | `gilrs 0.11.2` compiles clean for the UWP target on its Windows.Gaming.Input backend, so this should mostly work once wired up. |
 | Native Rust mods, horizon-ctl/MCP, server hosting | Not supported on Xbox; the launcher cannot compile code in the sandbox. |
 
 ## Common errors
