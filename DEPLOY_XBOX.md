@@ -79,6 +79,45 @@ New-SelfSignedCertificate -Type Custom -Subject "CN=Horizon Developer" -KeyUsage
 
 Export it to `test.pfx`, then pass the same subject to `package-xbox`.
 
+## 4b. Test it on the PC first (no console needed)
+
+Xbox Developer Mode needs a Partner Center developer account, which takes
+registration and in most regions a fee. You do not need it to test most of
+this port.
+
+A UWP app runs on Windows with the same CoreApplication, CoreWindow and
+Direct3D 12 it gets on console, and the manifest targets `Windows.Desktop`
+as well as `Windows.Xbox`, so the same package installs on the PC that built
+it. What that does **not** cover is the console's memory budget, its output
+modes and real controller behaviour; everything else behaves the same.
+
+Turn on Windows Developer Mode (free): **Settings -> System -> For
+developers -> Developer Mode**.
+
+The PC must trust the signing certificate, which needs an **Administrator**
+PowerShell:
+
+```powershell
+$pw = ConvertTo-SecureString -String "<your pfx password>" -Force -AsPlainText
+Import-PfxCertificate -FilePath test.pfx -CertStoreLocation Cert:\LocalMachine\TrustedPeople -Password $pw
+```
+
+Then install and run it:
+
+```powershell
+Add-AppxPackage .\Horizon.msix
+```
+
+It appears in the Start menu. To replace it after a rebuild, pass
+`-ForceUpdateFromAnyVersion`, or remove it first:
+
+```powershell
+Get-AppxPackage *Horizon* | Remove-AppxPackage
+```
+
+Its `LocalState` folder, where logs and saves go, is under
+`%LOCALAPPDATA%\Packages\<package family name>\LocalState`.
+
 ## 5. Install it
 
 1. In Device Portal, open **Home** (the app list) and choose **Add**.

@@ -35,6 +35,14 @@
       Direct3D 12 feature set the renderer expects on console.
     -->
     <TargetDeviceFamily Name="Windows.Xbox" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+    <!--
+      Desktop as well, so the same package can be installed and run on a
+      Windows PC. A UWP app there gets the same CoreApplication, CoreWindow
+      and Direct3D 12 as on console, so nearly all of this port can be tested
+      without a console in Developer Mode: only the Xbox's own memory budget,
+      output modes and controller behaviour need the hardware.
+    -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
   </Dependencies>
 
   <Resources>
