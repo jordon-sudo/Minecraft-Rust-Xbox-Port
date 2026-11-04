@@ -14,6 +14,13 @@
 //! What a pass looks like: the screen cycles blue to purple, the controller's
 //! Menu button closes it, and `smoke.log` ends with "clean exit".
 
+// A UWP app must be a Windows-subsystem executable. The
+// x86_64-uwp-windows-msvc target spec passes /APPCONTAINER but sets no
+// subsystem, so Rust builds a `bin` as a console executable by default, and a
+// console executable inside an app container exits on activation without
+// opening a window, writing a log or leaving a crash record.
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 #[cfg(not(target_vendor = "uwp"))]
 fn main() {
     eprintln!(
